@@ -270,21 +270,38 @@ def main(song):
     for tick, note in notes.items():
         noteC += 1
         print(f"Creating Note: {noteC}/{len(notes.keys())}")
+
         tempNoteblockCoords, tempRedstoneCoords = deepcopy(noteblockCoords), deepcopy(redstoneCoords)
-        with open(f"{functionName}/data/{functionName.lower()}/functions/ticks/"
-                  f"{round(tick * tempoMultiplier)}.mcfunction", 'a') as f:
+
+        # 파티클 시작 높이
+        particle_start_height = 13
+
+        # 각 노트에 대해
+        with open(f"{functionName}/data/{functionName.lower()}/functions/ticks/{round(tick * tempoMultiplier)}.mcfunction", 'a') as f:
             for n in note:
                 noteblock, redstone = tempNoteblockCoords[n[0]][0], tempRedstoneCoords[n[0]][0]
                 instrument_color = color_codes[n[0]]
-    
-                f.write(f"\nsetblock {noteblock[0]} {noteblock[1]} {noteblock[2]} "
-                        f"note_block[note={n[1]}]\nsetblock {redstone[0]} {redstone[1]} {redstone[2]} "
-                        f"redstone_block\nsetblock {redstone[0]} {redstone[1]} {redstone[2]} air\n"
-                        f"particleex conditional minecraft:end_rod {redstone[0]} {redstone[1]+0.5} {redstone[2]-1} "
-                        f"{instrument_color[0]} {instrument_color[1]} {instrument_color[2]} 1 0 0 0 0.5 0.5 0.5 "
-                        "'x>=0.5&y>=0.5|x>=0.5&y<=-0.5|x<=-0.5&y>=0.5|x<=-0.5&y<=-0.5|y>=0.5&z>=0.5|y>=0.5&z<=-0.5|y<=-0.5&z>=0.5|y<=-0.5&z<=-0.5|z>=0.5&x>=0.5|z>=0.5&x<=-0.5|z<=-0.5&x>=0.5|z<=-0.5&x<=-0.5' 0.1 3 0 1.0 0")
-                tempNoteblockCoords[n[0]].pop(0), tempRedstoneCoords[n[0]].pop(0)
-            f.close()
+
+                # 파티클을 한 번만 생성
+                f.write(f"\nparticleex conditional minecraft:end_rod {redstone[0]} {particle_start_height} {redstone[2]-1} "
+                        f"{instrument_color[0]} {instrument_color[1]} {instrument_color[2]} 1 0 0 0 0.5 0.5 0.5 'x>=0.5&y>=0.5|x>=0.5&y<=-0.5|x<=-0.5&y>=0.5|x<=-0.5&y<=-0.5|y>=0.5&z>=0.5|y>=0.5&z<=-0.5|y<=-0.5&z>=0.5|y<=-0.5&z<=-0.5|z>=0.5&x>=0.5|z>=0.5&x<=-0.5|z<=-0.5&x>=0.5|z<=-0.5&x<=-0.5' 0.1 30 'vy=-0.3' 1.0")
+
+                # 60 TICK 뒤에 노트블록을 재생하도록 schedule 명령어 사용
+                f.write(f"\nschedule function {functionName.lower()}:play_note_{noteC}_{n[0]}_{n[1]} 30t")
+
+                # 새로운 함수 파일 생성 (노트블록 재생용)
+                with open(f"{functionName}/data/{functionName.lower()}/functions/play_note_{noteC}_{n[0]}_{n[1]}.mcfunction", 'w') as note_file:
+                    note_file.write(f"setblock {noteblock[0]} {noteblock[1]} {noteblock[2]} note_block[note={n[1]}]\n"
+                                    f"setblock {redstone[0]} {redstone[1]} {redstone[2]} redstone_block\n"
+                                    f"setblock {redstone[0]} {redstone[1]} {redstone[2]} air\n"
+                                    f"particleex conditional minecraft:end_rod {redstone[0]} {particle_start_height-8.5} {redstone[2]} "
+                                    f"{instrument_color[0]} {instrument_color[1]} {instrument_color[2]} 1 0 0 0 0.5 0.5 0.5 'x>=0.5&y>=0.5|x>=0.5&y<=-0.5|x<=-0.5&y>=0.5|x<=-0.5&y<=-0.5|y>=0.5&z>=0.5|y>=0.5&z<=-0.5|y<=-0.5&z>=0.5|y<=-0.5&z<=-0.5|z>=0.5&x>=0.5|z>=0.5&x<=-0.5|z<=-0.5&x>=0.5|z<=-0.5&x<=-0.5' 0.1 5 0 1.0")
+
+                # 좌표 제거
+                tempNoteblockCoords[n[0]].pop(0)
+                tempRedstoneCoords[n[0]].pop(0)
+
+        f.close()
 
     print("Making it Into a Zip File...")
     make_archive(functionName, "zip", functionName)
